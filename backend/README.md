@@ -22,6 +22,8 @@ The API listens on `http://127.0.0.1:4000`.
 - `PATCH /api/motors/:id`
 - `POST /api/farmer-requests`
 - `PATCH /api/farmer-requests/:id`
+- `GET /api/modules`
+- `POST /api/ai/optimize`
 
 The JSON file in `data.json` is persisted locally. Motor and approval operations enforce role-based access at the API level.
 
