@@ -1,0 +1,119 @@
+{
+  "farmers": [
+    {
+      "id": "farmer-001",
+      "name": "Ravi Patel",
+      "status": "Approved",
+      "field": "North Field",
+      "acreage": 12
+    },
+    {
+      "id": "farmer-002",
+      "name": "Meera Singh",
+      "status": "Pending",
+      "field": "East Field",
+      "acreage": 8
+    },
+    {
+      "id": "farmer-003",
+      "name": "Arjun Kumar",
+      "status": "Approved",
+      "field": "West Field",
+      "acreage": 15
+    }
+  ],
+  "tubewells": [
+    {
+      "id": "tw-001",
+      "name": "North Tubewell",
+      "owner": "Tubewell Owner",
+      "status": "Operational",
+      "flow": 62
+    },
+    {
+      "id": "tw-002",
+      "name": "River Tubewell",
+      "owner": "Tubewell Owner",
+      "status": "Maintenance",
+      "flow": 0
+    }
+  ],
+  "motors": [
+    {
+      "id": "motor-001",
+      "name": "Pump A",
+      "tubewellId": "tw-001",
+      "state": "ON",
+      "flow": 38,
+      "voltage": 412
+    },
+    {
+      "id": "motor-002",
+      "name": "Pump B",
+      "tubewellId": "tw-001",
+      "state": "ON",
+      "flow": 38,
+      "voltage": 412
+    },
+    {
+      "id": "motor-003",
+      "name": "Pump C",
+      "tubewellId": "tw-002",
+      "state": "OFF",
+      "flow": 0,
+      "voltage": 0
+    }
+  ],
+  "requests": [
+    {
+      "id": "req-001",
+      "farmer": "Ravi Patel",
+      "field": "North Field",
+      "volume": 40,
+      "status": "Approved",
+      "date": "2026-11-25"
+    },
+    {
+      "id": "req-002",
+      "farmer": "Meera Singh",
+      "field": "East Field",
+      "volume": 28,
+      "status": "Pending",
+      "date": "2026-11-25"
+    },
+    {
+      "id": "req-003",
+      "farmer": "Arjun Kumar",
+      "field": "West Field",
+      "volume": 52,
+      "status": "Scheduled",
+      "date": "2026-11-26"
+    }
+  ],
+  "activity": [
+    {
+      "id": "fd20b0ea-603d-49d9-b5e4-852802b34f51",
+      "message": "Pump B turned ON",
+      "type": "motor",
+      "time": "Just now"
+    },
+    {
+      "id": "act-001",
+      "message": "Pump A started",
+      "type": "motor",
+      "time": "8 minutes ago"
+    },
+    {
+      "id": "act-002",
+      "message": "Ravi Patel request approved",
+      "type": "request",
+      "time": "34 minutes ago"
+    },
+    {
+      "id": "act-003",
+      "message": "North reservoir reached 68%",
+      "type": "sensor",
+      "time": "1 hour ago"
+    }
+  ]
+}

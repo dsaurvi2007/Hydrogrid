@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import './App.css'
 
 function Brand() {
@@ -160,13 +160,32 @@ function LoginPage() {
     'farmer@hydrogrid.local': { password: 'Farmer123!', role: 'Farmer', name: 'Registered Farmer', route: '/farmer' },
   }
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const account = demoAccounts[email.trim().toLowerCase()]
 
     if (!account || account.password !== password) {
       setError('Use a demo account shown below.')
       return
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:4000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      })
+      if (response.ok) {
+        const result = await response.json()
+        localStorage.setItem('hydrogrid-demo-session', JSON.stringify({
+          ...result.user,
+          token: result.token,
+        }))
+        navigate(account.route)
+        return
+      }
+    } catch {
+      // The static frontend remains usable during backend startup.
     }
 
     localStorage.setItem('hydrogrid-demo-session', JSON.stringify({
@@ -223,14 +242,144 @@ function LoginPage() {
 }
 
 function WorkspacePage({ role }: { role: string }) {
+  const [dashboard, setDashboard] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    const session = JSON.parse(localStorage.getItem('hydrogrid-demo-session') || '{}')
+    const roleRoute = role === 'Admin' ? 'Admin' : role
+
+    if (!session.token) {
+      setLoading(false)
+      setDashboard({
+        motors: [
+          { id: 'motor-001', name: 'Pump A', state: 'ON', flow: 38, voltage: 412 },
+          { id: 'motor-002', name: 'Pump B', state: 'OFF', flow: 0, voltage: 418 },
+        ],
+        requests: [
+          { id: 'req-001', farmer: 'Ravi Patel', field: 'North Field', volume: 40, status: 'Approved' },
+          { id: 'req-002', farmer: 'Meera Singh', field: 'East Field', volume: 28, status: 'Pending' },
+        ],
+        activity: [
+          { id: 'act-1', message: 'Pump A started', time: '8 minutes ago', type: 'motor' },
+          { id: 'act-2', message: 'North reservoir reached 68%', time: '1 hour ago', type: 'sensor' },
+        ],
+      })
+      return
+    }
+
+    fetch(`http://127.0.0.1:4000/api/dashboard/${encodeURIComponent(roleRoute)}`, {
+      headers: { Authorization: `Bearer ${session.token}` },
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Dashboard unavailable')
+        setDashboard(await response.json())
+      })
+      .catch(() => setMessage('Backend data is unavailable. Showing no live mutations.'))
+      .finally(() => setLoading(false))
+  }, [role])
+
+  async function toggleMotor(motorId: string, nextState: 'ON' | 'OFF') {
+    const session = JSON.parse(localStorage.getItem('hydrogrid-demo-session') || '{}')
+    if (!session.token) {
+      setDashboard((current: any) => ({
+        ...current,
+        motors: current.motors.map((motor: any) =>
+          motor.id === motorId ? { ...motor, state: nextState, flow: nextState === 'ON' ? 38 : 0 } : motor
+        ),
+      }))
+      setMessage(`Demo mode: motor set to ${nextState}`)
+      return
+    }
+    const response = await fetch(`http://127.0.0.1:4000/api/motors/${motorId}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${session.token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ state: nextState }),
+    })
+    if (!response.ok) {
+      setMessage('Motor operation was not authorized.')
+      return
+    }
+    const updated = await response.json()
+    setDashboard((current: any) => ({
+      ...current,
+      motors: current.motors.map((item: any) => item.id === updated.id ? updated : item),
+    }))
+    setMessage(`Motor set to ${nextState}`)
+  }
+
+  if (loading) {
+    return <main className="dashboard-page"><p>Loading dashboard…</p></main>
+  }
+
+  const motorCount = dashboard?.motors?.length || 0
+  const activeCount = dashboard?.motors?.filter((motor: any) => motor.state === 'ON').length || 0
+  const pendingCount = dashboard?.requests?.filter((request: any) => request.status === 'Pending').length || 0
+
   return (
-    <main className="content-page">
-      <div className="workspace-preview">
-        <span className="eyebrow">Foundation preview</span>
-        <h1>{role} workspace</h1>
-        <p>Dashboard functionality will be implemented in the role-based dashboard phase.</p>
-        <NavLink className="button button-secondary" to="/roles">Back to roles</NavLink>
+    <main className="dashboard-page">
+      <div className="dashboard-heading">
+        <div>
+          <span className="eyebrow">{role} workspace</span>
+          <h1>Good morning</h1>
+        </div>
+        <NavLink className="button button-secondary" to="/login" onClick={() => localStorage.removeItem('hydrogrid-demo-session')}>Sign out</NavLink>
       </div>
+      {message && <p className="dashboard-message" role="status">{message}</p>}
+      <section className="stat-grid" aria-label="Operational summary">
+        <article><small>Active motors</small><strong>{activeCount}</strong><span>{motorCount} registered</span></article>
+        <article><small>Pending requests</small><strong>{pendingCount}</strong><span>Awaiting review</span></article>
+        <article><small>Water delivered</small><strong>184 m³</strong><span>Today</span></article>
+        <article><small>Reservoir level</small><strong>68%</strong><span>Healthy</span></article>
+      </section>
+      <section className="dashboard-grid">
+        <article className="dashboard-panel motor-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Operations</span><h2>Motor control</h2></div></div>
+          <div className="motor-list">
+            {dashboard?.motors?.map((motor: any) => (
+              <div className="motor-row" key={motor.id}>
+                <div>
+                  <strong>{motor.name}</strong>
+                  <span>{motor.state === 'ON' ? `${motor.flow} m³/h` : 'Idle'} · {motor.voltage || 0} V</span>
+                </div>
+                <button
+                  className={motor.state === 'ON' ? 'motor-toggle is-on' : 'motor-toggle'}
+                  type="button"
+                  onClick={() => toggleMotor(motor.id, motor.state === 'ON' ? 'OFF' : 'ON')}
+                  disabled={role === 'Farmer'}
+                  aria-label={`${motor.state === 'ON' ? 'Stop' : 'Start'} ${motor.name}`}
+                >
+                  <span />
+                  {motor.state}
+                </button>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="dashboard-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Distribution</span><h2>Water requests</h2></div></div>
+          <div className="request-list">
+            {dashboard?.requests?.map((request: any) => (
+              <div className="request-row" key={request.id}>
+                <div><strong>{request.farmer}</strong><span>{request.field} · {request.volume} m³</span></div>
+                <span className={`request-status status-${request.status.toLowerCase()}`}>{request.status}</span>
+              </div>
+            ))}
+          </div>
+        </article>
+        <article className="dashboard-panel activity-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Live feed</span><h2>Recent activity</h2></div></div>
+          <div className="activity-list">
+            {dashboard?.activity?.map((item: any) => (
+              <div className="activity-row" key={item.id}><span className={`activity-icon ${item.type}`} /><div><strong>{item.message}</strong><small>{item.time}</small></div></div>
+            ))}
+          </div>
+        </article>
+      </section>
     </main>
   )
 }
