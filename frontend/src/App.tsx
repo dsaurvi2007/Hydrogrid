@@ -153,6 +153,8 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [selectedRole, setSelectedRole] = useState('Admin')
   const navigate = useNavigate()
 
   const demoAccounts: Record<string, { password: string; role: string; name: string; route: string }> = {
@@ -197,45 +199,115 @@ function LoginPage() {
     navigate(account.route)
   }
 
+  function fillDemoRole(role: 'Admin' | 'Tubewell Owner' | 'Farmer') {
+    setSelectedRole(role)
+    if (role === 'Admin') {
+      setEmail('admin@hydrogrid.local')
+      setPassword('Admin123!')
+    } else if (role === 'Tubewell Owner') {
+      setEmail('owner@hydrogrid.local')
+      setPassword('Owner123!')
+    } else {
+      setEmail('farmer@hydrogrid.local')
+      setPassword('Farmer123!')
+    }
+    setError('')
+  }
+
   return (
     <main className="auth-page">
-      <section className="auth-card" aria-labelledby="login-heading">
-        <span className="eyebrow">HYDROGRID account</span>
-        <h1 id="login-heading">Sign in</h1>
-        <p>Demo mode uses local session storage. Firebase authentication is pending configuration.</p>
-        <form onSubmit={handleLogin}>
-          <label htmlFor="email">Email address</label>
-          <input
-            id="email"
-            type="email"
-            name="email"
-            placeholder="name@example.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
-            required
-          />
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            name="password"
-            placeholder="Enter password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-          {error && <p className="auth-error" role="alert">{error}</p>}
-          <button className="button button-primary" type="submit">
-            Sign in
-          </button>
-        </form>
-        <div className="demo-accounts" aria-label="Demo account credentials">
-          <span>Demo accounts</span>
-          <small>Admin: admin@hydrogrid.local / Admin123!</small>
-          <small>Owner: owner@hydrogrid.local / Owner123!</small>
-          <small>Farmer: farmer@hydrogrid.local / Farmer123!</small>
+      <section className="auth-shell" aria-labelledby="login-heading">
+        <div className="auth-story">
+          <Brand />
+          <div className="auth-story-copy">
+            <span className="auth-kicker"><span /> Precision irrigation network</span>
+            <h1>Every drop,<br />accounted for.</h1>
+            <p>Monitor water, coordinate motors, and make every irrigation decision with complete visibility.</p>
+          </div>
+          <div className="auth-orbit" aria-label="Water network status">
+            <div className="orbit-ring orbit-ring-one" />
+            <div className="orbit-ring orbit-ring-two" />
+            <div className="orbit-core"><strong>68%</strong><span>Available</span></div>
+            <div className="orbit-node orbit-node-one"><span>184</span><small>m³ delivered</small></div>
+            <div className="orbit-node orbit-node-two"><span>12</span><small>active motors</small></div>
+          </div>
+          <div className="auth-story-footer">
+            <span>HYDROGRID OS</span>
+            <span>Network operational</span>
+          </div>
+        </div>
+
+        <div className="auth-form-side">
+          <NavLink className="auth-mobile-brand" to="/" aria-label="HYDROGRID home">
+            <span className="brand-mark" aria-hidden="true"><span /></span>
+            <span>HYDROGRID</span>
+          </NavLink>
+          <div className="auth-card">
+            <div className="auth-card-heading">
+              <span className="eyebrow">Secure workspace</span>
+              <h2 id="login-heading">Welcome back</h2>
+              <p>Sign in to continue to your HYDROGRID workspace.</p>
+            </div>
+
+            <div className="role-switcher" aria-label="Choose demo role">
+              {(['Admin', 'Tubewell Owner', 'Farmer'] as const).map((role) => (
+                <button
+                  type="button"
+                  key={role}
+                  className={selectedRole === role ? 'is-selected' : ''}
+                  onClick={() => fillDemoRole(role)}
+                >
+                  {role === 'Admin' ? 'Admin' : role === 'Tubewell Owner' ? 'Owner' : 'Farmer'}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleLogin}>
+              <div className="auth-field">
+                <label htmlFor="email">Email address</label>
+                <div className="auth-input-wrap">
+                  <span aria-hidden="true">@</span>
+                  <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    placeholder="you@hydrogrid.local"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="auth-field">
+                <div className="auth-label-row">
+                  <label htmlFor="password">Password</label>
+                  <button type="button" onClick={() => setShowPassword((shown) => !shown)}>
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <div className="auth-input-wrap">
+                  <span aria-hidden="true">••</span>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+              </div>
+              {error && <p className="auth-error" role="alert">{error}</p>}
+              <button className="button auth-submit" type="submit">
+                Enter workspace <span aria-hidden="true">→</span>
+              </button>
+            </form>
+
+            <p className="auth-demo-note">Demo credentials are automatically filled by selecting a role.</p>
+          </div>
         </div>
       </section>
     </main>
