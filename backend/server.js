@@ -72,6 +72,87 @@ app.get('/api/dashboard/:role', authorize, async (req, res) => {
   })
 })
 
+app.get('/api/modules', authorize, async (_req, res) => {
+  const data = await loadData()
+  res.json({
+    mode: 'SIMULATION',
+    smartWater: {
+      reservoirPercent: 68,
+      availableVolume: 1840,
+      efficiencyScore: 87,
+      wastagePercent: 4.2,
+      shortageRisk: 'Low',
+      forecasts: [
+        { period: 'Today', demand: 184, supply: 220 },
+        { period: 'Tomorrow', demand: 218, supply: 205 },
+        { period: '7 days', demand: 1460, supply: 1512 },
+      ],
+    },
+    ai: {
+      allocationRecommendations: [
+        { farmer: 'Ravi Patel', hectares: 12, recommended: 40, urgency: 'High', reason: 'Crop demand is high and existing allocation has been used efficiently.' },
+        { farmer: 'Meera Singh', hectares: 8, recommended: 28, urgency: 'Medium', reason: 'Pending request fits available capacity without exceeding the field limit.' },
+        { farmer: 'Arjun Kumar', hectares: 15, recommended: 52, urgency: 'Medium', reason: 'Largest field area, but recent usage is below the network average.' },
+      ],
+      demandPrediction: { value: 218, uncertainty: 18, unit: 'm3', confidence: 'Demonstration estimate' },
+      anomalies: [
+        { id: 'anom-1', severity: 'Review', motor: 'Pump C', message: 'Flow sensor reading differs from the simulated operating curve.' },
+        { id: 'anom-2', severity: 'Low', motor: 'Pump B', message: 'Longer than usual idle interval detected.' },
+      ],
+    },
+    digitalTwin: {
+      status: 'Virtual network only',
+      tubewells: data.tubewells,
+      motors: data.motors,
+      scenarios: [
+        { name: 'Demand increase', impact: '+18% pump load', risk: 'Moderate' },
+        { name: 'Water shortage', impact: '-25% available volume', risk: 'High' },
+        { name: 'Motor failure', impact: '12% capacity loss', risk: 'High' },
+      ],
+    },
+    iot: {
+      label: 'SIMULATED READINGS',
+      sensors: [
+        { name: 'Reservoir level', value: '68%', state: 'Normal' },
+        { name: 'Pump A flow', value: '38 m3/h', state: 'Normal' },
+        { name: 'Pump A temperature', value: '54 C', state: 'Watch' },
+        { name: 'Pump A vibration', value: '2.1 mm/s', state: 'Normal' },
+        { name: 'Water pH', value: '7.2', state: 'Normal' },
+        { name: 'Turbidity', value: '3.1 NTU', state: 'Normal' },
+      ],
+    },
+    maintenance: [
+      { motor: 'Pump A', due: '14 days', recommendation: 'Inspect bearing and vibration sensor.', risk: 'Low' },
+      { motor: 'Pump B', due: '3 days', recommendation: 'Verify motor temperature before next heavy run.', risk: 'Medium' },
+      { motor: 'Pump C', due: 'Overdue', recommendation: 'Investigate offline motor and connectivity.', risk: 'High' },
+    ],
+    weather: {
+      label: 'SIMULATED WEATHER',
+      temperature: 28,
+      humidity: 64,
+      rainfall: 3.2,
+      recommendation: 'Reduce non-essential irrigation after forecast rainfall.',
+    },
+  })
+})
+
+app.post('/api/ai/optimize', authorize, async (req, res) => {
+  const available = Number(req.body.availableVolume)
+  const data = await loadData()
+  if (!Number.isFinite(available) || available <= 0) {
+    return res.status(400).json({ error: 'availableVolume must be greater than zero' })
+  }
+  const farmers = data.farmers.filter((farmer) => farmer.status === 'Approved')
+  const fairShare = available / Math.max(farmers.length, 1)
+  const allocations = farmers.map((farmer) => ({
+    farmer: farmer.name,
+    requested: fairShare * (farmer.acreage / 10),
+    recommended: Number(Math.min(fairShare * (farmer.acreage / 10), available).toFixed(1)),
+    reason: 'Based on approved status, field area and available simulated capacity.',
+  }))
+  res.json({ mode: 'DEMONSTRATION', availableVolume: available, allocations })
+})
+
 app.patch('/api/motors/:id', authorize, async (req, res) => {
   if (!['Admin', 'Tubewell Owner'].includes(req.session.role)) {
     return res.status(403).json({ error: 'Motor operation is not permitted for this role' })

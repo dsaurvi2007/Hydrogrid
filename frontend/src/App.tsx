@@ -39,6 +39,7 @@ function Header() {
         >
           <NavLink to="/" end onClick={() => setMenuOpen(false)}>Overview</NavLink>
           <NavLink to="/roles" onClick={() => setMenuOpen(false)}>Roles</NavLink>
+          <NavLink to="/modules" onClick={() => setMenuOpen(false)}>AI & IoT</NavLink>
           <NavLink className="nav-login" to="/login" onClick={() => setMenuOpen(false)}>Sign in</NavLink>
         </nav>
       </div>
@@ -384,6 +385,166 @@ function WorkspacePage({ role }: { role: string }) {
   )
 }
 
+function ModulesPage() {
+  const [modules, setModules] = useState<any>(null)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    const session = JSON.parse(localStorage.getItem('hydrogrid-demo-session') || '{}')
+    if (!session.token) {
+      setModules({
+        smartWater: { reservoirPercent: 68, availableVolume: 1840, efficiencyScore: 87, wastagePercent: 4.2, shortageRisk: 'Low' },
+        ai: {
+          allocationRecommendations: [
+            { farmer: 'Ravi Patel', recommended: 40, urgency: 'High', reason: 'High crop demand and efficient recent usage.' },
+            { farmer: 'Meera Singh', recommended: 28, urgency: 'Medium', reason: 'Fits available capacity and approved field limit.' },
+            { farmer: 'Arjun Kumar', recommended: 52, urgency: 'Medium', reason: 'Largest field area with below-average recent usage.' },
+          ],
+          demandPrediction: { value: 218, uncertainty: 18, confidence: 'Demonstration estimate' },
+          anomalies: [
+            { severity: 'Review', motor: 'Pump C', message: 'Flow reading differs from the simulated operating curve.' },
+            { severity: 'Low', motor: 'Pump B', message: 'Unusually long idle interval detected.' },
+          ],
+        },
+        digitalTwin: { status: 'Virtual network only', scenarios: [
+          { name: 'Demand increase', impact: '+18% pump load', risk: 'Moderate' },
+          { name: 'Water shortage', impact: '-25% available volume', risk: 'High' },
+          { name: 'Motor failure', impact: '12% capacity loss', risk: 'High' },
+        ] },
+        iot: { label: 'SIMULATED READINGS', sensors: [
+          { name: 'Reservoir level', value: '68%', state: 'Normal' },
+          { name: 'Pump A flow', value: '38 m3/h', state: 'Normal' },
+          { name: 'Pump A temperature', value: '54 C', state: 'Watch' },
+          { name: 'Water pH', value: '7.2', state: 'Normal' },
+        ] },
+        maintenance: [
+          { motor: 'Pump A', due: '14 days', recommendation: 'Inspect bearing and vibration sensor.', risk: 'Low' },
+          { motor: 'Pump B', due: '3 days', recommendation: 'Verify motor temperature.', risk: 'Medium' },
+          { motor: 'Pump C', due: 'Overdue', recommendation: 'Investigate connectivity.', risk: 'High' },
+        ],
+        weather: { label: 'SIMULATED WEATHER', temperature: 28, humidity: 64, rainfall: 3.2, recommendation: 'Reduce non-essential irrigation after forecast rainfall.' },
+      })
+      return
+    }
+    fetch('http://127.0.0.1:4000/api/modules', {
+      headers: { Authorization: `Bearer ${session.token}` },
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Modules unavailable')
+        setModules(await response.json())
+      })
+      .catch(() => {
+        setModules({
+          smartWater: { reservoirPercent: 68, availableVolume: 1840, efficiencyScore: 87, wastagePercent: 4.2, shortageRisk: 'Low' },
+          ai: {
+            allocationRecommendations: [
+              { farmer: 'Ravi Patel', recommended: 40, urgency: 'High', reason: 'High crop demand and efficient recent usage.' },
+              { farmer: 'Meera Singh', recommended: 28, urgency: 'Medium', reason: 'Fits available capacity and approved field limit.' },
+            ],
+            demandPrediction: { value: 218, uncertainty: 18 },
+            anomalies: [{ severity: 'Review', motor: 'Pump C', message: 'Flow reading differs from the simulated operating curve.' }],
+          },
+          digitalTwin: { status: 'Virtual network only', scenarios: [
+            { name: 'Demand increase', impact: '+18% pump load', risk: 'Moderate' },
+            { name: 'Water shortage', impact: '-25% available volume', risk: 'High' },
+          ] },
+          iot: { label: 'SIMULATED READINGS', sensors: [
+            { name: 'Reservoir level', value: '68%', state: 'Normal' },
+            { name: 'Pump A flow', value: '38 m3/h', state: 'Normal' },
+          ] },
+          maintenance: [
+            { motor: 'Pump A', due: '14 days', recommendation: 'Inspect bearing and vibration sensor.', risk: 'Low' },
+          ],
+          weather: { label: 'SIMULATED WEATHER', temperature: 28, humidity: 64, rainfall: 3.2, recommendation: 'Reduce non-essential irrigation after forecast rainfall.' },
+        })
+        setMessage('Backend unavailable. Demo module data is shown.')
+      })
+  }, [])
+
+  if (!modules) {
+    return <main className="dashboard-page"><p>Loading advanced modules…</p></main>
+  }
+
+  return (
+    <main className="advanced-page">
+      <div className="dashboard-heading">
+        <div>
+          <span className="eyebrow">HYDROGRID intelligence</span>
+          <h1>AI, IoT & Planning</h1>
+        </div>
+        <span className="demo-badge">Demonstration mode</span>
+      </div>
+      {message && <p className="dashboard-message" role="status">{message}</p>}
+
+      <section className="stat-grid advanced-stats" aria-label="Advanced system summary">
+        <article><small>Reservoir available</small><strong>{modules.smartWater.availableVolume} m³</strong><span>{modules.smartWater.reservoirPercent}% level</span></article>
+        <article><small>Distribution efficiency</small><strong>{modules.smartWater.efficiencyScore}%</strong><span>Wastage {modules.smartWater.wastagePercent}%</span></article>
+        <article><small>Demand prediction</small><strong>{modules.ai.demandPrediction.value} m³</strong><span>±{modules.ai.demandPrediction.uncertainty} m³</span></article>
+        <article><small>Shortage risk</small><strong>{modules.smartWater.shortageRisk}</strong><span>Current simulation</span></article>
+      </section>
+
+      <section className="advanced-grid">
+        <article className="dashboard-panel ai-panel">
+          <div className="panel-heading"><div><span className="eyebrow">AI distribution optimizer</span><h2>Recommended allocations</h2></div></div>
+          {modules.ai.allocationRecommendations.map((item: any) => (
+            <div className="allocation-row" key={item.farmer}>
+              <div><strong>{item.farmer}</strong><span>{item.reason}</span></div>
+              <div className="allocation-value"><strong>{item.recommended} m³</strong><small>{item.urgency} urgency</small></div>
+            </div>
+          ))}
+        </article>
+
+        <article className="dashboard-panel twin-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Digital twin</span><h2>{modules.digitalTwin.status}</h2></div></div>
+          {modules.digitalTwin.scenarios.map((scenario: any) => (
+            <div className="scenario-row" key={scenario.name}>
+              <strong>{scenario.name}</strong><span>{scenario.impact}</span><small className={`risk-${scenario.risk.toLowerCase()}`}>{scenario.risk} risk</small>
+            </div>
+          ))}
+        </article>
+
+        <article className="dashboard-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Advanced IoT</span><h2>{modules.iot.label}</h2></div></div>
+          <div className="sensor-grid">
+            {modules.iot.sensors.map((sensor: any) => (
+              <div className="sensor-card" key={sensor.name}><small>{sensor.name}</small><strong>{sensor.value}</strong><span>{sensor.state}</span></div>
+            ))}
+          </div>
+        </article>
+
+        <article className="dashboard-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Predictive maintenance</span><h2>Service recommendations</h2></div></div>
+          {modules.maintenance.map((item: any) => (
+            <div className="maintenance-row" key={item.motor}>
+              <div><strong>{item.motor}</strong><span>{item.recommendation}</span></div>
+              <small className={`maintenance-risk risk-${item.risk.toLowerCase()}`}>{item.due}</small>
+            </div>
+          ))}
+        </article>
+
+        <article className="dashboard-panel anomaly-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Anomaly review</span><h2>Operational flags</h2></div></div>
+          {modules.ai.anomalies.map((item: any) => (
+            <div className="anomaly-row" key={item.motor}>
+              <span className="anomaly-dot" />
+              <div><strong>{item.motor} · {item.severity}</strong><small>{item.message}</small></div>
+            </div>
+          ))}
+        </article>
+
+        <article className="dashboard-panel weather-panel">
+          <div className="panel-heading"><div><span className="eyebrow">Weather intelligence</span><h2>{modules.weather.label}</h2></div></div>
+          <div className="weather-summary">
+            <strong>{modules.weather.temperature}°C</strong>
+            <div><small>Humidity {modules.weather.humidity}%</small><small>Forecast rain {modules.weather.rainfall} mm</small></div>
+          </div>
+          <p>{modules.weather.recommendation}</p>
+        </article>
+      </section>
+    </main>
+  )
+}
+
 function NotFoundPage() {
   return (
     <main className="content-page">
@@ -403,6 +564,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/roles" element={<RolesPage />} />
+        <Route path="/modules" element={<ModulesPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<WorkspacePage role="Admin" />} />
         <Route path="/owner" element={<WorkspacePage role="Tubewell Owner" />} />
