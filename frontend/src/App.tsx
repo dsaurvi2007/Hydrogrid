@@ -1,5 +1,5 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
-import { useState } from 'react'
+import { NavLink, Route, Routes, useNavigate } from 'react-router-dom'
+import { useState, type FormEvent } from 'react'
 import './App.css'
 
 function Brand() {
@@ -149,21 +149,74 @@ function RolesPage() {
 }
 
 function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
+
+  const demoAccounts: Record<string, { password: string; role: string; name: string; route: string }> = {
+    'admin@hydrogrid.local': { password: 'Admin123!', role: 'Admin', name: 'HYDROGRID Admin', route: '/admin' },
+    'owner@hydrogrid.local': { password: 'Owner123!', role: 'Tubewell Owner', name: 'Tubewell Owner', route: '/owner' },
+    'farmer@hydrogrid.local': { password: 'Farmer123!', role: 'Farmer', name: 'Registered Farmer', route: '/farmer' },
+  }
+
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const account = demoAccounts[email.trim().toLowerCase()]
+
+    if (!account || account.password !== password) {
+      setError('Use a demo account shown below.')
+      return
+    }
+
+    localStorage.setItem('hydrogrid-demo-session', JSON.stringify({
+      email: email.trim().toLowerCase(),
+      role: account.role,
+      name: account.name,
+    }))
+    navigate(account.route)
+  }
+
   return (
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="login-heading">
         <span className="eyebrow">HYDROGRID account</span>
         <h1 id="login-heading">Sign in</h1>
-        <p>Authentication will be enabled when Firebase integration is completed.</p>
-        <form onSubmit={(event) => event.preventDefault()}>
+        <p>Demo mode uses local session storage. Firebase authentication is pending configuration.</p>
+        <form onSubmit={handleLogin}>
           <label htmlFor="email">Email address</label>
-          <input id="email" type="email" name="email" placeholder="name@example.com" />
+          <input
+            id="email"
+            type="email"
+            name="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" name="password" placeholder="Enter password" />
-          <button className="button button-primary" type="submit" disabled>
-            Authentication unavailable
+          <input
+            id="password"
+            type="password"
+            name="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+          {error && <p className="auth-error" role="alert">{error}</p>}
+          <button className="button button-primary" type="submit">
+            Sign in
           </button>
         </form>
+        <div className="demo-accounts" aria-label="Demo account credentials">
+          <span>Demo accounts</span>
+          <small>Admin: admin@hydrogrid.local / Admin123!</small>
+          <small>Owner: owner@hydrogrid.local / Owner123!</small>
+          <small>Farmer: farmer@hydrogrid.local / Farmer123!</small>
+        </div>
       </section>
     </main>
   )

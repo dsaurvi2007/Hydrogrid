@@ -466,6 +466,36 @@
   transform: none;
 }
 
+.auth-error {
+  margin: 2px 0 6px;
+  color: #a33b32;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.demo-accounts {
+  display: grid;
+  gap: 4px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.demo-accounts span {
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.demo-accounts small {
+  font-size: 11px;
+  line-break: anywhere;
+}
+
 .workspace-preview {
   max-width: 720px;
   padding: 48px;
